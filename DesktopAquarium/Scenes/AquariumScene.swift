@@ -6,14 +6,38 @@
 //
 
 import SpriteKit
+import Combine
+import AVFoundation // 🚀 【新增】：导入音频底层库
 
 class AquariumScene: SKScene {
     private var lastUpdateTime: TimeInterval = 0
+    private var backgroundNode: SKSpriteNode?
+    private var cancellables = Set<AnyCancellable>()
+    // 【新增】：环境音轨节点
+    private var ambientPlayer: AVAudioPlayer?
+    // 【新增】：记录当前鼠标悬停的坐标
+    var currentMousePosition: CGPoint? = nil
     
     override func sceneDidLoad() {
         super.sceneDidLoad()
         self.backgroundColor = .clear
         self.scaleMode = .resizeFill
+        
+        // 🚀 1. 设置空间音频的“耳朵” (Listener)
+        // 创建一个透明节点放在屏幕正中间，代表用户的头部
+        let listenerNode = SKNode()
+        self.addChild(listenerNode)
+        self.listener = listenerNode
+        
+        // 🚀 2. 启动环境底噪
+        setupAmbientAudio()
+        
+        // 监听背景变化
+        WindowManager.shared.$selectedBackground
+            .sink { [weak self] bg in
+                self?.updateBackground(to: bg)
+            }
+            .store(in: &cancellables)
         
         let screenBounds = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
         
@@ -51,6 +75,74 @@ class AquariumScene: SKScene {
         hunter.position = CGPoint(x: safeMaxX, y: CGFloat.random(in: 100...safeMaxY))
         self.addChild(hunter)
     }
+    // 因为 listener 节点需要随着屏幕缩放保持居中，我们在 didChangeSize 中更新它
+    override func didChangeSize(_ oldSize: CGSize) {
+        super.didChangeSize(oldSize)
+        self.listener?.position = CGPoint(x: self.frame.midX, y: self.frame.midY)
+    }
+    // MARK: - 音频系统
+    private func setupAmbientAudio() {
+        // 1. 获取音频文件的真实物理路径
+        guard let url = Bundle.main.url(forResource: "ambient", withExtension: "mp3") else {
+            print("⚠️ 找不到 ambient.mp3 文件，请检查拼写和 Target Membership！")
+            return
+        }
+        
+        do {
+            // 2. 初始化播放器
+            ambientPlayer = try AVAudioPlayer(contentsOf: url)
+            
+            // 3. 基础设置
+            ambientPlayer?.numberOfLoops = -1 // -1 代表无限循环
+            ambientPlayer?.volume = 0.0       // 初始音量设为 0
+            
+            // 4. 开始播放
+            ambientPlayer?.play()
+            
+            // 5. 🚀 AVFoundation 原生支持的完美淡入效果！(1.5秒内音量过渡到 0.3)
+            ambientPlayer?.setVolume(0.3, fadeDuration: 1.5)
+            
+            print("✅ 环境音轨启动成功！")
+        } catch {
+            print("⚠️ 环境音轨加载失败: \(error.localizedDescription)")
+        }
+    }
+    
+    private func updateBackground(to bg: AquariumBackground) {
+        // 先移除旧背景
+        backgroundNode?.removeFromParent()
+        
+        if bg == .none {
+            backgroundNode = nil
+            return
+        }
+        
+        // 创建新背景（假设你有对应的图片资源）
+        // 如果暂时没图，可以先用一个纯色块测试：SKTexture(rect: ..., color: .blue)
+        let imgName: String
+        switch bg {
+        case .deepSea:
+            imgName = "deepSea"
+        case .coralReef:
+            imgName = "coralReef"
+        default:
+            imgName = ""
+        }
+        let texture = SKTexture(imageNamed: imgName)
+        let node = SKSpriteNode(texture: texture)
+        
+        node.zPosition = -100 // 确保在最底层
+        node.position = CGPoint(x: self.frame.midX, y: self.frame.midY)
+        
+        // 自动适配屏幕尺寸 (Aspect Fill)
+        let scaleX = self.frame.width / node.size.width
+        let scaleY = self.frame.height / node.size.height
+        let scale = max(scaleX, scaleY)
+        node.setScale(scale)
+        
+        self.addChild(node)
+        self.backgroundNode = node
+    }
     
     override func update(_ currentTime: TimeInterval) {
         if lastUpdateTime == 0 { lastUpdateTime = currentTime }
@@ -66,5 +158,34 @@ class AquariumScene: SKScene {
         for fish in flock {
             fish.update(deltaTime: deltaTime, bounds: visibleBounds, flock: flock)
         }
+    }
+    
+    // MARK: - 惊吓交互
+    func updateMouseHover(at position: CGPoint?) {
+        self.currentMousePosition = position
+    }
+    
+    func dropFood(at position: CGPoint) {
+        // 1. 画一个简单的圆形代表鱼食 (你也可以换成贴图)
+        let food = SKShapeNode(circleOfRadius: 4.0)
+        food.fillColor = NSColor(red: 0.8, green: 0.6, blue: 0.3, alpha: 1.0) // 褐色鱼食
+        food.strokeColor = .white
+        food.lineWidth = 1.0
+        
+        // 🚀 核心：打上标签，方便一会鱼去寻找它
+        food.name = "fish_food"
+        food.position = position
+        food.zPosition = 50
+        
+        self.addChild(food)
+        
+        // 2. 物理掉落动画：慢慢沉到缸底
+        let sinkDistance = position.y + 100 // 沉到屏幕外
+        let sinkDuration = TimeInterval(sinkDistance / 60.0) // 匀速下沉
+        
+        let sink = SKAction.moveBy(x: 0, y: -sinkDistance, duration: sinkDuration)
+        let remove = SKAction.removeFromParent()
+        
+        food.run(SKAction.sequence([sink, remove]))
     }
 }
