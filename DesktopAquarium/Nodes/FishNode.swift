@@ -8,8 +8,8 @@ class FishNode: SKSpriteNode {
     var huntCooldown: TimeInterval = 0
     // 【新增】：当前实际游速
     var currentSpeed: CGFloat = 0
-    // 【新增】：每条鱼天生的逃窜偏好（向左偏或向右偏），用于打破圆弧阵型
-    let panicEvasionDirection: CGFloat = Bool.random() ? 1.0 : -1.0
+    // 记录存活时间，加上随机初始值防止所有鱼的 S 曲线神光同步
+    var timeAlive: TimeInterval = Double.random(in: 0...100)
     
     init(config: FishConfig) {
         self.config = config
@@ -129,7 +129,8 @@ class FishNode: SKSpriteNode {
     // MARK: - 更新逻辑
     // 注意：这里的参数增加了 flock 数组，让鱼能感知到其他鱼
     func update(deltaTime: TimeInterval, bounds: CGRect, flock: [FishNode]) {
-        
+        // 在 update 方法的最开始，让时间流动起来
+        timeAlive += deltaTime
         // 1. 漫步逻辑 (Wander)
         let randomSteer = CGFloat.random(in: -1...1) * config.wanderRate * CGFloat(deltaTime)
         currentAngle += randomSteer
@@ -162,7 +163,7 @@ class FishNode: SKSpriteNode {
                 }
                 
                 if let prey = closestPrey {
-                    if minDistance < 50 {
+                    if minDistance < 70 {
                         huntCooldown = 4.0
                     } else if minDistance < 150 {
                         // 【状态：猛扑】猎物近在咫尺，爆发出 2.5 倍的速度冲刺！
@@ -219,14 +220,15 @@ class FishNode: SKSpriteNode {
                         }
                     }
                     
-                    // 🚀【核心优化 2：斜向逃避 (V字炸开)】根据自身偏好，向左或向右呈最大 60 度角闪避
+                    // 🚀【核心优化 2：S型蛇皮走位 (Serpentine Evasion)】
                     let currentEscapeAngle = atan2(survivalForce.dy, survivalForce.dx)
-                    // 距离大鱼越近，炸开的角度越极端
                     let scatterIntensity = max(0, (120 - closestThreatDist) / 120)
-                    // .pi / 3 就是 60度
-                    let dartAngle = currentEscapeAngle + (panicEvasionDirection * (.pi / 3) * scatterIntensity)
                     
-                    // 重新覆盖生存引导力，让小鱼斜着窜出去
+                    // 利用正弦波 sin() 产生左右交替的摇摆角度。
+                    // 乘数 12.0 控制扭屁股的频率，.pi/3.5 控制摇摆的幅度
+                    let wiggleAngle = CGFloat(sin(timeAlive * 12.0)) * (.pi / 3.5) * scatterIntensity
+                    let dartAngle = currentEscapeAngle + wiggleAngle
+                    
                     survivalForce = CGVector(dx: cos(dartAngle), dy: sin(dartAngle))
                     
                 } else {
@@ -248,7 +250,7 @@ class FishNode: SKSpriteNode {
             while angleDiff < -.pi { angleDiff += 2 * .pi }
             
             // 大鱼追击转身稍慢，小鱼逃命转身极快
-            let reactionSpeed: CGFloat = config.isPredator ? 2.5 : 5.0
+            let reactionSpeed: CGFloat = config.isPredator ? 1.2 : 6.0
             currentAngle += angleDiff * reactionSpeed * CGFloat(deltaTime)
             
         } else if !config.isPredator {
@@ -292,16 +294,56 @@ class FishNode: SKSpriteNode {
         self.position.x += velocity.dx * CGFloat(deltaTime)
         self.position.y += velocity.dy * CGFloat(deltaTime)
         
-        // 5. 转向防抖 (解决垂直游动时的左右横跳)
-        let flipThreshold: CGFloat = 1.5 // 设定一个横向速度阈值
+        // 专门对付高速冲刺时软边界拉不住的情况，相当于给鱼缸加了实体玻璃
+        let padding: CGFloat = 30.0 // 允许鱼身体稍微出界一点点边缘，但不完全消失
+        var hitWall = false
         
-        if velocity.dx > flipThreshold {
-            // 明确向右游时，才向右翻转
-            self.xScale = -abs(self.xScale)
-        } else if velocity.dx < -flipThreshold {
-            // 明确向左游时，才向左翻转
-            self.xScale = abs(self.xScale)
+        if self.position.x < bounds.minX - padding {
+            self.position.x = bounds.minX - padding
+            velocity.dx = abs(velocity.dx) // 撞左墙，强制向右弹
+            hitWall = true
+        } else if self.position.x > bounds.maxX + padding {
+            self.position.x = bounds.maxX + padding
+            velocity.dx = -abs(velocity.dx) // 撞右墙，强制向左弹
+            hitWall = true
         }
+        
+        if self.position.y < bounds.minY - padding {
+            self.position.y = bounds.minY - padding
+            velocity.dy = abs(velocity.dy) // 撞底，强制向上弹
+            hitWall = true
+        } else if self.position.y > bounds.maxY + padding {
+            self.position.y = bounds.maxY + padding
+            velocity.dy = -abs(velocity.dy) // 撞顶，强制向下弹
+            hitWall = true
+        }
+        
+        // 如果触发了物理反弹，必须同步修正它的游动意图(角度)，否则下一帧它还会想往墙外游
+        if hitWall {
+            currentAngle = atan2(velocity.dy, velocity.dx)
+        }
+        
+        // 5. 转向防抖 (解决垂直游动时的左右横跳)
+        // 【核心优化】：将固定阈值升级为“动态速度阈值” + “垂直方向锁定”
+        
+        // 动态阈值：游速越快，容忍的抖动范围越大（最低不低于 1.5）
+        let dynamicThreshold = max(1.5, currentSpeed * 0.05)
+        
+        // 垂直锁定：如果 Y 轴的速度是 X 轴的 3 倍以上（意味着游动角度极度陡峭，超过 71 度）
+        // 就认为它正在“垂直上下游”，此时忽略横向抖动，保持翻转状态不变
+        let isMovingPredominantlyVertically = abs(velocity.dy) > abs(velocity.dx) * 3.0
+        
+        if !isMovingPredominantlyVertically {
+            if velocity.dx > dynamicThreshold {
+                // 明确向右游时，才向右翻转
+                self.xScale = -abs(self.xScale)
+            } else if velocity.dx < -dynamicThreshold {
+                // 明确向左游时，才向左翻转
+                self.xScale = abs(self.xScale)
+            }
+        }
+        
+        
         // 注意：如果 velocity.dx 在 -1.5 到 1.5 之间，代码什么都不做，
         // 鱼就会平滑地保持它翻转前的朝向，完美消除鬼畜！
         // --- 【新增：同步摆尾动画速度】 ---

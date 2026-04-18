@@ -20,12 +20,12 @@ struct DesktopAquariumApp: App {
         // 隐藏默认的窗口标题栏行为
         .windowStyle(.hiddenTitleBar)
         
-        MenuBarExtra("水族馆控制", systemImage: "fish") {
-            
-            Button("退出水族馆"){
-                NSApplication.shared.terminate(nil)
-            }
-            .keyboardShortcut("q")
-        }
+//        MenuBarExtra("水族馆控制", systemImage: "fish") {
+//            
+//            Button("退出水族馆"){
+//                NSApplication.shared.terminate(nil)
+//            }
+//            .keyboardShortcut("q")
+//        }
     }
 }
