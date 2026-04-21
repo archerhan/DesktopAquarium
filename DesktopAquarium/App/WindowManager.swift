@@ -25,6 +25,14 @@ class WindowManager: ObservableObject {
     @Published var isAudioEnabled: Bool = true
     @Published var displayMode: DisplayMode = .allSpaces
     
+    // 🚀 新增：生态随机触发器。每次赋新值都会通知场景重新刷鱼
+    @Published var ecologyRandomizer = UUID()
+    
+    // 🚀 新增：暴露给 UI 按钮调用的方法
+    func randomizeEcology() {
+        ecologyRandomizer = UUID()
+    }
+    
     private var cancellables = Set<AnyCancellable>()
     
     private init() {

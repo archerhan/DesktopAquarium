@@ -145,6 +145,28 @@ struct ModernControlPanelView: View {
             }
             
             Divider()
+                        
+            // 🚀 新增：生态随机重置按钮
+            Button(action: {
+                windowManager.randomizeEcology()
+            }) {
+                HStack {
+                    Spacer()
+                    Image(systemName: "dice.fill")
+                        .font(.system(size: 14, weight: .bold))
+                    Text("随机重置生态")
+                        .fontWeight(.medium)
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+                // 使用极其温柔的蓝色背景，与警示的红色退出按钮形成区分
+                .background(Color.blue.opacity(0.1))
+                .foregroundColor(.blue)
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            
+            Divider()
             
             Button(action: {
                 NSApplication.shared.terminate(nil)

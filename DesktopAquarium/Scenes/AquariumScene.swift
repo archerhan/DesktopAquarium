@@ -46,73 +46,89 @@ class AquariumScene: SKScene {
             }
             .store(in: &cancellables)
         
-        let screenBounds = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        // 🚀 监听 WindowManager 的随机指令
+        WindowManager.shared.$ecologyRandomizer
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.generateRandomEcology()
+            }
+            .store(in: &cancellables)
         
-        // 投放 15 条绿鱼
-        for _ in 0..<15 {
-            let fish = FishNode(config: .greenFish)
-            let safeMaxX = max(101, screenBounds.width - 100)
-            let safeMaxY = max(101, screenBounds.height - 100)
-            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
-            self.addChild(fish)
-        }
-        
-        // 【新增】：投放 10 条红鱼
-        for _ in 0..<10 {
-            let fish = FishNode(config: .redFish)
-            let safeMaxX = max(101, screenBounds.width - 100)
-            let safeMaxY = max(101, screenBounds.height - 100)
-            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
-            self.addChild(fish)
-        }
-        
-        for _ in 0..<10 {
-            let fish = FishNode(config: .yellowFish)
-            let safeMaxX = max(101, screenBounds.width - 100)
-            let safeMaxY = max(101, screenBounds.height - 100)
-            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
-            self.addChild(fish)
-        }
-        
-        // 投放 2 条黄鱼
-        for _ in 0..<2 {
-            let fish = FishNode(config: .bigYellowFish)
-            let safeMaxX = max(101, screenBounds.width - 100)
-            let safeMaxY = max(101, screenBounds.height - 100)
-            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
-            self.addChild(fish)
-        }
-        
-        for _ in 0..<1 {
-            let fish = FishNode(config: .coloredFish1)
-            let safeMaxX = max(101, screenBounds.width - 100)
-            let safeMaxY = max(101, screenBounds.height - 100)
-            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
-            self.addChild(fish)
-        }
-
-        for _ in 0..<2 {
-            let fish = FishNode(config: .coloredFish2)
-            let safeMaxX = max(101, screenBounds.width - 100)
-            let safeMaxY = max(101, screenBounds.height - 100)
-            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
-            self.addChild(fish)
-        }
-
-        
-        // 【新增】：投放 1 条剑鱼（大鱼）
-        let hunter = FishNode(config: .hunterFish)
-        let safeMaxX = max(101, screenBounds.width - 100)
-        let safeMaxY = max(101, screenBounds.height - 100)
-        // 让大鱼随机出生在屏幕边缘区域，营造一种“游入视野”的感觉
-        hunter.position = CGPoint(x: safeMaxX, y: CGFloat.random(in: 100...safeMaxY))
-        self.addChild(hunter)
     }
+    
+    // MARK: - 🎲 核心随机生成算法
+    private func generateRandomEcology() {
+        print("🌊 开始重新生成海洋生态...")
+        
+        // 1. 清理旧生态：移除所有旧的鱼节点和数组记录
+        self.children.filter { $0 is FishNode }.forEach { $0.removeFromParent() }
+        // 如果你的代码里有专门存鱼的数组（用于 Boids 计算），也需要清空，比如：
+        // self.fishes.removeAll()
+        
+        // 2. 🦈 生成 1 只捕食者
+        if let predator = FishConfig.allPredators.randomElement() {
+            spawnFishes(config: predator, count: 1)
+        }
+        
+        // 3. 🐋 随机挑选 2 种大鱼，每种生成 1~2 条
+        let selectedLarge = FishConfig.allLarge.shuffled().prefix(2)
+        for config in selectedLarge {
+            spawnFishes(config: config, count: Int.random(in: 1...2))
+        }
+        
+        // 4. 🐡 随机挑选 3 种中鱼，每种生成 3~5 条
+        let selectedMedium = FishConfig.allMedium.shuffled().prefix(3)
+        for config in selectedMedium {
+            spawnFishes(config: config, count: Int.random(in: 3...5))
+        }
+        
+        // 5. 🐟 随机挑选 2 种小鱼，每种生成 10~15 条（形成极具观赏性的鱼群）
+        let selectedSmall = FishConfig.allSmall.shuffled().prefix(2)
+        for config in selectedSmall {
+            spawnFishes(config: config, count: Int.random(in: 10...15))
+        }
+    }
+    
+    // 辅助生成的提取方法
+    // 辅助生成的提取方法
+    private func spawnFishes(config: FishConfig, count: Int) {
+        for _ in 0..<count {
+            let fish = FishNode(config: config)
+            
+            // 在屏幕范围内随机找一个出生点
+            let randomX = CGFloat.random(in: 0...max(self.size.width, 100))
+            let randomY = CGFloat.random(in: 0...max(self.size.height, 100))
+            fish.position = CGPoint(x: randomX, y: randomY)
+            
+            // 🚀 核心修复：移除 360 度随机旋转，改为强制水平 + 随机左右朝向
+            fish.zRotation = 0 // 初始绝对水平
+            
+            let isFacingLeft = Bool.random() // 抛硬币决定初始朝左还是朝右
+            // 通过 xScale 的正负值来做镜像翻转 (假设素材默认朝左)
+            fish.xScale = isFacingLeft ? abs(config.baseScale) : -abs(config.baseScale)
+            
+            // 💡 可选优化：如果你在 FishNode 里维护了速度向量 (velocity)
+            // 最好也在这里给它一个初始的水平初速度，避免它刚出生时原地发呆或乱窜
+            /*
+            let initialSpeed = config.moveSpeed * 0.5
+            let dx = isFacingLeft ? -initialSpeed : initialSpeed
+            fish.velocity = CGVector(dx: dx, dy: CGFloat.random(in: -10...10))
+            */
+            
+            // 赋予随机深浅层级，增加 3D 景深感
+            fish.zPosition = CGFloat.random(in: -50...50)
+            
+            self.addChild(fish)
+            // 记得加进你的 Boids 数组中，比如： self.fishes.append(fish)
+        }
+    }
+    
     // 因为 listener 节点需要随着屏幕缩放保持居中，我们在 didChangeSize 中更新它
     override func didChangeSize(_ oldSize: CGSize) {
         super.didChangeSize(oldSize)
         self.listener?.position = CGPoint(x: self.frame.midX, y: self.frame.midY)
     }
+    
     // MARK: - 音频系统
     private func setupAmbientAudio() {
         // 1. 获取音频文件的真实物理路径

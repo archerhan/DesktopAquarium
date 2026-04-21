@@ -17,6 +17,8 @@ class FishNode: SKSpriteNode {
     // 【新增】：记录是否正在发力冲刺，防止音效重叠播放
     private var isDashing: Bool = false
     
+
+    
     init(config: FishConfig) {
         self.config = config
         self.currentSpeed = config.moveSpeed
@@ -245,7 +247,17 @@ class FishNode: SKSpriteNode {
                 
                 if let prey = closestPrey {
                     if minDistance < 70 {
-                        huntCooldown = 4.0
+                        // 【状态：撕咬/吞咽结算】
+                        // 1. 使用 config 中配置好的冷却时间，而不是硬编码的 4.0
+                        huntCooldown = config.huntCooldown > 0 ? config.huntCooldown : 8.0
+                        
+                        // 2. 保持冲刺的极限速度甚至更高一点，模拟扑咬时的最终发力惯性
+                        targetSpeed = config.moveSpeed * 3.0
+                        
+                        // 3. （可选）如果你有吃鱼逻辑，可以在这里把 prey 从场景中移除
+                        // prey.removeFromParent()
+                        // 并且播放一个吞咽或水花音效
+                        
                     } else if minDistance < 150 {
                         // 【状态：猛扑】猎物近在咫尺，爆发出 2.5 倍的速度冲刺！
                         targetSpeed = config.moveSpeed * 2.5
