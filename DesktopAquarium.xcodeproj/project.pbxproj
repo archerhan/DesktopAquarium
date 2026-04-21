@@ -6,12 +6,7 @@
 	objectVersion = 77;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		6A1280432F9605D800CEA42F /* LICENSE in Sources */ = {isa = PBXBuildFile; fileRef = 6A1280422F9605D600CEA42F /* LICENSE */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
-		6A1280422F9605D600CEA42F /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		6A1280492F960CDC00CEA42F /* AquariumSaver.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AquariumSaver.saver; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AFA230E2F92337A00B3EA4A /* DesktopAquarium.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DesktopAquarium.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -70,7 +65,6 @@
 		6AFA23052F92337A00B3EA4A = {
 			isa = PBXGroup;
 			children = (
-				6A1280422F9605D600CEA42F /* LICENSE */,
 				6AFA23102F92337A00B3EA4A /* DesktopAquarium */,
 				6A12804A2F960CDC00CEA42F /* AquariumSaver */,
 				6AFA230F2F92337A00B3EA4A /* Products */,
@@ -211,7 +205,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6A1280432F9605D800CEA42F /* LICENSE in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
