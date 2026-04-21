@@ -1,7 +1,7 @@
 import AppKit
 import Combine
+import SwiftUI
 
-// 1. 定义显示模式枚举
 enum DisplayMode: String, CaseIterable {
     case allSpaces = "所有桌面"
     case currentSpace = "当前桌面"
@@ -11,110 +11,154 @@ enum AquariumBackground: String, CaseIterable {
     case none = "无（透明桌面）"
     case deepSea = "深海蓝"
     case coralReef = "珊瑚礁"
-    // 你可以后续增加更多背景图名称
 }
 
 class WindowManager: ObservableObject {
     static let shared = WindowManager()
-    private weak var window: NSWindow?
-    // 【新增】：是否开启交互（投喂）模式
+    
+    private var activeWindow: NSWindow?
+    
+    // 🚀 核心修复 1：废除所有的 didSet！只保留最纯粹的状态声明。
+    @Published var selectedDisplayIndex: Int = 0
     @Published var isInteractive: Bool = false
-    
-    // 【新增】发布背景选择状态
     @Published var selectedBackground: AquariumBackground = .none
-    
-    // 【新增】：是否开启环境音，默认开启
     @Published var isAudioEnabled: Bool = true
+    @Published var displayMode: DisplayMode = .allSpaces
     
-    // 🚀 新增：用于存储 Combine 监听器的集合
     private var cancellables = Set<AnyCancellable>()
     
-    // 2. 🚀 新增：显示模式状态
-    @Published var displayMode: DisplayMode = .allSpaces {
-        didSet {
-            applyCollectionBehavior()
-        }
-    }
-    
-    // 🚀 新增：初始化方法
     private init() {
-        setupSmartDeactivation()
+        setupStateObservers()
+        setupSystemListeners()
     }
     
-    // MARK: - 智能退让机制
-    private func setupSmartDeactivation() {
-        // 1. 监听用户切换虚拟桌面 (Spaces)
+    // MARK: - 🚀 状态变更监听 (防波堤)
+    private func setupStateObservers() {
+        // 使用 Combine 监听状态改变。
+        // dropFirst() 避免初始化时触发；receive(on:) 确保在主线程且在当前视图更新周期【之后】执行。
+        
+        $selectedDisplayIndex
+            .dropFirst()
+            .removeDuplicates() // 只有值真改变了才执行
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.moveToSelectedScreen()
+            }
+            .store(in: &cancellables)
+            
+        $isInteractive
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] interactive in
+                guard let window = self?.activeWindow else { return }
+                window.ignoresMouseEvents = !interactive
+                window.backgroundColor = interactive ? NSColor.black.withAlphaComponent(0.05) : .clear
+                if interactive {
+                    NSApp.activate(ignoringOtherApps: true)
+                    window.orderFrontRegardless()
+                }
+            }
+            .store(in: &cancellables)
+            
+        $displayMode
+            .dropFirst()
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.applyCollectionBehavior()
+            }
+            .store(in: &cancellables)
+    }
+    
+    // MARK: - 🚀 系统通知监听 (防过载)
+    private func setupSystemListeners() {
         NSWorkspace.shared.notificationCenter.publisher(for: NSWorkspace.activeSpaceDidChangeNotification)
-            .receive(on: RunLoop.main)
+            // 🚀 核心修复 2：加入 0.2 秒延迟！
+            // 避开系统切换桌面的“高负载冰冻期”，完美防止音频引擎崩溃！
+            .delay(for: .milliseconds(200), scheduler: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.turnOffInteractiveIfNeeded(reason: "切换了桌面")
             }
             .store(in: &cancellables)
         
-        // 2. 监听用户去操作了其他软件 (App 失去焦点)
         NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)
-            .receive(on: RunLoop.main)
+            .receive(on: DispatchQueue.main)
             .sink { [weak self] _ in
                 self?.turnOffInteractiveIfNeeded(reason: "点击了其他软件")
+            }
+            .store(in: &cancellables)
+            
+        NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)
+            // 🚀 核心修复 3：加入防抖！
+            // 忽略极短时间内系统发出的乱七八糟的屏幕重置通知，只在最终稳定时才平移窗口
+            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.moveToSelectedScreen()
             }
             .store(in: &cancellables)
     }
     
     private func turnOffInteractiveIfNeeded(reason: String) {
-        if isInteractive {
-            isInteractive = false
+        if self.isInteractive {
+            self.isInteractive = false
             print("🛑 智能退让触发 (\(reason))，自动退出投喂模式！")
         }
     }
     
-    func setupWindow(_ window: NSWindow) {
-        self.window = window
-        
-        // 1. 设置全屏尺寸 (覆盖主屏幕)
-        if let screen = NSScreen.main {
-            window.setFrame(screen.frame, display: true)
+    // MARK: - 单屏幕移动引擎
+    func setupSingleWindow() {
+        if activeWindow == nil {
+            let screen = NSScreen.screens.first ?? NSScreen.main!
+            let window = NSWindow(
+                contentRect: screen.frame,
+                styleMask: [.borderless, .fullSizeContentView],
+                backing: .buffered,
+                defer: false,
+                screen: screen
+            )
+            
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            window.hasShadow = false
+            window.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopIconWindow)))
+            window.ignoresMouseEvents = !isInteractive
+            
+            window.contentView = NSHostingView(rootView: ContentView())
+            self.activeWindow = window
         }
-        
-        // 2. 关键属性：全透明、无边框
-        window.styleMask = [.borderless, .fullSizeContentView]
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
-        
-        // 3. 层级与空间锁定
-        // .canJoinAllSpaces: 在所有 Space (桌面) 都可见
-        // .stationary: 窗口在切换窗口时不改变层级（固定在背景）
-        // .ignoresCycle: 不出现在 Cmd+Tab 的切换循环中
-        window.collectionBehavior = [.fullScreenAuxiliary, .ignoresCycle]
-        // 4. 固定在桌面底层 (Icons 之下)
-        window.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopIconWindow)))
-        
-        // 5. 默认开启点击穿透
-        window.ignoresMouseEvents = true
-        
-        // 3. 🚀 初始化时应用收集行为
-        applyCollectionBehavior()
+        moveToSelectedScreen()
     }
     
-    // 4. 🚀 核心逻辑：动态切换窗口的系统行为
-    private func applyCollectionBehavior() {
-        guard let window = window else { return }
+    private func moveToSelectedScreen() {
+        guard let window = activeWindow else { return }
+        let screens = NSScreen.screens
+        guard !screens.isEmpty else { return }
         
-        if displayMode == .allSpaces {
-            // 方案 A：在所有桌面可见，且在切换时保持静止（真正的动态壁纸感）
-            window.collectionBehavior = [
-                .canJoinAllSpaces,
-                .stationary,
-                .ignoresCycle,
-                .fullScreenAuxiliary
-            ]
+        let targetScreen: NSScreen
+        if selectedDisplayIndex >= 0 && selectedDisplayIndex < screens.count {
+            targetScreen = screens[selectedDisplayIndex]
         } else {
-            // 方案 B：仅在当前桌面可见。
-            // 💡 注意：这里去掉了 .stationary，这样切换桌面时鱼缸会跟着旧桌面一起滑走，避免产生残影
-            window.collectionBehavior = [
-                .ignoresCycle,
-                .fullScreenAuxiliary
-            ]
+            targetScreen = screens[0]
+            if self.selectedDisplayIndex != 0 {
+                self.selectedDisplayIndex = 0 // 这个改变会被上方的 sink 捕获，但由于去重机制不会死循环
+            }
+        }
+        
+        // 🚀 核心修复 4：设置 display: false
+        // 仅仅移动坐标，但不强制要求系统立刻重绘，彻底解决 LayoutRecursion 死锁
+        window.setFrame(targetScreen.frame, display: false)
+        
+        applyCollectionBehavior()
+        window.orderFront(nil)
+    }
+    
+    private func applyCollectionBehavior() {
+        guard let window = activeWindow else { return }
+        if displayMode == .allSpaces {
+            window.collectionBehavior = [.canJoinAllSpaces, .stationary, .ignoresCycle, .fullScreenAuxiliary]
+        } else {
+            window.collectionBehavior = [.ignoresCycle, .fullScreenAuxiliary]
         }
     }
 }

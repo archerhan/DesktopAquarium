@@ -1,53 +1,45 @@
-//
-//  AppDelegate.swift
-//  DesktopAquarium
-//
-//  Created by it on 2026/4/17.
-//
-
 import AppKit
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     
-    // 🚀 声明状态栏核心对象
     var statusItem: NSStatusItem!
-    var interactiveMenuItem: NSMenuItem!
-    var audioMenuItem: NSMenuItem! // 🚀 新增：音频菜单项引用
     var popover: NSPopover!
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // 🚀 让 App 作为“附件”运行：不显示 Dock 图标，不出现在强制退出列表，纯净后台运行！
         NSApp.setActivationPolicy(.accessory)
         
-        guard let window = NSApplication.shared.windows.first else { return }
-        window.styleMask = [.borderless, .fullSizeContentView]
-        window.isOpaque = false
-        window.backgroundColor = .clear
-        window.hasShadow = false
+        // 关掉系统默认窗口
+        if let defaultWindow = NSApplication.shared.windows.first {
+            defaultWindow.close()
+        }
         
-        // 将窗口交给管理器接管
-        WindowManager.shared.setupWindow(window)
+        // 🚀 启动单屏移动引擎
+        WindowManager.shared.setupSingleWindow()
         
         setupStatusBar()
     }
-    // MARK: - 现代状态栏 Popover 系统
+    
     private func setupStatusBar() {
-        // 1. 配置状态栏图标
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.image = NSImage(systemSymbolName: "fish", accessibilityDescription: "水族馆")
-            // 点击图标时，触发 Popover 开关
             button.action = #selector(togglePopover(_:))
         }
         
-        // 2. 初始化现代化悬浮窗
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 260, height: 300)
-        popover.behavior = .transient // 🚀 关键：点击屏幕其他地方，面板自动收起！
+        popover.contentSize = NSSize(width: 260, height: 420)
+        popover.behavior = .transient
         
-        // 3. 将极其美观的 SwiftUI 视图塞进悬浮窗里
         popover.contentViewController = NSHostingController(rootView: ModernControlPanelView())
+        
+        // 🚀 核心修复 1：监听 App 失去焦点（比如切换桌面、点击了其他软件的主窗口）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(forceClosePopover),
+            name: NSApplication.didResignActiveNotification,
+            object: nil
+        )
     }
     
     @objc private func togglePopover(_ sender: AnyObject?) {
@@ -55,11 +47,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if popover.isShown {
                 popover.performClose(sender)
             } else {
-                // 唤醒 App 获取焦点，确保按钮能够第一时间被点击
                 NSApp.activate(ignoringOtherApps: true)
-                // 在状态栏图标正下方弹出悬浮面板
                 popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
             }
+        }
+    }
+
+    @objc private func forceClosePopover() {
+        if popover.isShown {
+            popover.performClose(nil)
         }
     }
 }
@@ -68,9 +64,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 struct ModernControlPanelView: View {
     @ObservedObject var windowManager = WindowManager.shared
     
+    // 🚀 终极修复方案：异步绑定生成器 (The Async Clutch)
+    // 截获所有的 UI 点击事件，强行推迟到下一个主线程周期执行
+    // 彻底斩断 SwiftUI 视图刷新与 AppKit 底层系统响应的同步冲突！
+    private func asyncBind<T>(_ keyPath: ReferenceWritableKeyPath<WindowManager, T>) -> Binding<T> {
+        Binding(
+            get: { self.windowManager[keyPath: keyPath] },
+            set: { newValue in
+                DispatchQueue.main.async {
+                    self.windowManager[keyPath: keyPath] = newValue
+                }
+            }
+        )
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            // 标题
             HStack {
                 Image(systemName: "fish.fill")
                 Text("水族馆控制台")
@@ -78,14 +87,14 @@ struct ModernControlPanelView: View {
             }
             .foregroundColor(.secondary)
             
-            // 1. 功能开关组
             VStack(spacing: 12) {
-                Toggle(isOn: $windowManager.isInteractive) {
+                // 🚀 所有控件不再直接绑定 $windowManager.xxx，而是使用 asyncBind
+                Toggle(isOn: asyncBind(\.isInteractive)) {
                     Label("投喂与互动模式", systemImage: "hand.tap.fill")
                 }
                 .toggleStyle(.switch)
                 
-                Toggle(isOn: $windowManager.isAudioEnabled) {
+                Toggle(isOn: asyncBind(\.isAudioEnabled)) {
                     Label("环境与气泡音效", systemImage: "speaker.wave.2.fill")
                 }
                 .toggleStyle(.switch)
@@ -93,14 +102,41 @@ struct ModernControlPanelView: View {
             
             Divider()
             
-            // 2. 🚀 背景切换 (全新加入)
+            // 所在显示器设置
+            VStack(alignment: .leading, spacing: 8) {
+                Label("所在显示器", systemImage: "desktopcomputer")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Picker("", selection: asyncBind(\.selectedDisplayIndex)) {
+                    ForEach(0..<NSScreen.screens.count, id: \.self) { index in
+                        Text(NSScreen.screens[index].localizedName).tag(index)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+            
+            // 桌面范围设置
+            VStack(alignment: .leading, spacing: 8) {
+                Label("桌面范围", systemImage: "macwindow.on.rectangle")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                Picker("", selection: asyncBind(\.displayMode)) {
+                    ForEach(DisplayMode.allCases, id: \.self) { mode in
+                        Text(mode.rawValue).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+            }
+            
+            // 背景切换
             VStack(alignment: .leading, spacing: 8) {
                 Label("场景背景", systemImage: "photo.on.rectangle.angled")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
-                // 使用分段选择器，非常有 macOS 控制中心的质感
-                Picker("", selection: $windowManager.selectedBackground) {
+                Picker("", selection: asyncBind(\.selectedBackground)) {
                     ForEach(AquariumBackground.allCases, id: \.self) { bg in
                         Text(bg.rawValue).tag(bg)
                     }
@@ -110,7 +146,6 @@ struct ModernControlPanelView: View {
             
             Divider()
             
-            // 3. 退出按钮
             Button(action: {
                 NSApplication.shared.terminate(nil)
             }) {
@@ -128,6 +163,6 @@ struct ModernControlPanelView: View {
             .buttonStyle(.plain)
         }
         .padding(20)
-        .frame(width: 260) // 稍微加宽一点，让 Segmented Picker 更好看
+        .frame(width: 260)
     }
 }
