@@ -20,7 +20,7 @@ class FishNode: SKSpriteNode {
     init(config: FishConfig) {
         self.config = config
         self.currentSpeed = config.moveSpeed
-        let texture = SKTexture(imageNamed: config.textureName)
+        let texture = SKTexture.safeLoad(name: config.textureName)
         texture.filteringMode = .nearest
         super.init(texture: texture, color: .clear, size: texture.size())
         self.setScale(config.baseScale)
@@ -116,6 +116,7 @@ class FishNode: SKSpriteNode {
     
     // MARK: - 空间音频播放
     private func playDashSound() {
+        guard WindowManager.shared.isAudioEnabled else { return }
         // 创建一个音效节点 (请确保项目中有 bubble.wav 或类似文件)
         let soundNode = SKAudioNode(fileNamed: "bubble.mp3")
         
@@ -125,7 +126,7 @@ class FishNode: SKSpriteNode {
         soundNode.autoplayLooped = false // 只播放一次
         
         // 大鱼的声音可以调大一点，小鱼声音清脆微弱一点
-        let volume: Float = config.isPredator ? 0.8 : 0.3
+        let volume: Float = config.isPredator ? 0.3 : 0.2
         soundNode.run(SKAction.changeVolume(to: volume, duration: 0))
         
         self.addChild(soundNode)
@@ -466,24 +467,19 @@ class FishNode: SKSpriteNode {
             currentAngle = atan2(velocity.dy, velocity.dx)
         }
         
-        // 5. 转向防抖 (解决垂直游动时的左右横跳)
-        // 【核心优化】：将固定阈值升级为“动态速度阈值” + “垂直方向锁定”
+        // 5. 转向防抖 (终极修复版：解决鬼畜，同时消除倒着游)
+        // 删除了引发 Bug 的“垂直锁定”，纯粹依赖“动态死区 (Deadzone)”
         
-        // 动态阈值：游速越快，容忍的抖动范围越大（最低不低于 1.5）
-        let dynamicThreshold = max(1.5, currentSpeed * 0.05)
+        // 动态死区：游速越快，允许的横向滑动误差越大 (约占当前速度的 6%)
+        let flipDeadzone = max(1.5, currentSpeed * 0.06)
         
-        // 垂直锁定：如果 Y 轴的速度是 X 轴的 3 倍以上（意味着游动角度极度陡峭，超过 71 度）
-        // 就认为它正在“垂直上下游”，此时忽略横向抖动，保持翻转状态不变
-        let isMovingPredominantlyVertically = abs(velocity.dy) > abs(velocity.dx) * 3.0
-        
-        if !isMovingPredominantlyVertically {
-            if velocity.dx > dynamicThreshold {
-                // 明确向右游时，才向右翻转
-                self.xScale = -abs(self.xScale)
-            } else if velocity.dx < -dynamicThreshold {
-                // 明确向左游时，才向左翻转
-                self.xScale = abs(self.xScale)
-            }
+        // 只有当横向速度实打实地突破了死区，才进行翻转
+        if velocity.dx > flipDeadzone {
+            // 明确向右游
+            self.xScale = -abs(self.xScale)
+        } else if velocity.dx < -flipDeadzone {
+            // 明确向左游
+            self.xScale = abs(self.xScale)
         }
         
         

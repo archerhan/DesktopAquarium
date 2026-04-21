@@ -6,19 +6,57 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6A1280432F9605D800CEA42F /* LICENSE in Sources */ = {isa = PBXBuildFile; fileRef = 6A1280422F9605D600CEA42F /* LICENSE */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		6A1280422F9605D600CEA42F /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		6A1280492F960CDC00CEA42F /* AquariumSaver.saver */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = AquariumSaver.saver; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AFA230E2F92337A00B3EA4A /* DesktopAquarium.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DesktopAquarium.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6A1280552F960D0D00CEA42F /* Exceptions for "DesktopAquarium" folder in "AquariumSaver" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"App/Bundle+Extension.swift",
+				App/WindowManager.swift,
+				Fishes/FishConfig.swift,
+				Nodes/FishNode.swift,
+				Resources/ambient.mp3,
+				Resources/Assets.xcassets,
+				Resources/bubble.mp3,
+				Scenes/AquariumScene.swift,
+			);
+			target = 6A1280482F960CDC00CEA42F /* AquariumSaver */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		6A12804A2F960CDC00CEA42F /* AquariumSaver */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = AquariumSaver;
+			sourceTree = "<group>";
+		};
 		6AFA23102F92337A00B3EA4A /* DesktopAquarium */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6A1280552F960D0D00CEA42F /* Exceptions for "DesktopAquarium" folder in "AquariumSaver" target */,
+			);
 			path = DesktopAquarium;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		6A1280462F960CDC00CEA42F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6AFA230B2F92337A00B3EA4A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -32,7 +70,9 @@
 		6AFA23052F92337A00B3EA4A = {
 			isa = PBXGroup;
 			children = (
+				6A1280422F9605D600CEA42F /* LICENSE */,
 				6AFA23102F92337A00B3EA4A /* DesktopAquarium */,
+				6A12804A2F960CDC00CEA42F /* AquariumSaver */,
 				6AFA230F2F92337A00B3EA4A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,13 +81,47 @@
 			isa = PBXGroup;
 			children = (
 				6AFA230E2F92337A00B3EA4A /* DesktopAquarium.app */,
+				6A1280492F960CDC00CEA42F /* AquariumSaver.saver */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
+/* Begin PBXHeadersBuildPhase section */
+		6A1280442F960CDC00CEA42F /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
 /* Begin PBXNativeTarget section */
+		6A1280482F960CDC00CEA42F /* AquariumSaver */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6A12804F2F960CDC00CEA42F /* Build configuration list for PBXNativeTarget "AquariumSaver" */;
+			buildPhases = (
+				6A1280442F960CDC00CEA42F /* Headers */,
+				6A1280452F960CDC00CEA42F /* Sources */,
+				6A1280462F960CDC00CEA42F /* Frameworks */,
+				6A1280472F960CDC00CEA42F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				6A12804A2F960CDC00CEA42F /* AquariumSaver */,
+			);
+			name = AquariumSaver;
+			packageProductDependencies = (
+			);
+			productName = AquariumSaver;
+			productReference = 6A1280492F960CDC00CEA42F /* AquariumSaver.saver */;
+			productType = "com.apple.product-type.bundle";
+		};
 		6AFA230D2F92337A00B3EA4A /* DesktopAquarium */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 6AFA23192F92337B00B3EA4A /* Build configuration list for PBXNativeTarget "DesktopAquarium" */;
@@ -80,6 +154,9 @@
 				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
+					6A1280482F960CDC00CEA42F = {
+						CreatedOnToolsVersion = 26.4.1;
+					};
 					6AFA230D2F92337A00B3EA4A = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
@@ -100,11 +177,19 @@
 			projectRoot = "";
 			targets = (
 				6AFA230D2F92337A00B3EA4A /* DesktopAquarium */,
+				6A1280482F960CDC00CEA42F /* AquariumSaver */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		6A1280472F960CDC00CEA42F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		6AFA230C2F92337A00B3EA4A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -115,16 +200,68 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		6AFA230A2F92337A00B3EA4A /* Sources */ = {
+		6A1280452F960CDC00CEA42F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6AFA230A2F92337A00B3EA4A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6A1280432F9605D800CEA42F /* LICENSE in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
+		6A1280502F960CDC00CEA42F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+								GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Aquarium Saver";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = AquariumSaverView;
+				INSTALL_PATH = "$(HOME)/Library/Screen Savers";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fun.coding4.AquariumSaver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = saver;
+			};
+			name = Debug;
+		};
+		6A1280512F960CDC00CEA42F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+								GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "Aquarium Saver";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSPrincipalClass = AquariumSaverView;
+				INSTALL_PATH = "$(HOME)/Library/Screen Savers";
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = fun.coding4.AquariumSaver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				WRAPPER_EXTENSION = saver;
+			};
+			name = Release;
+		};
 		6AFA23172F92337B00B3EA4A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -261,7 +398,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = fun.coding4.DesktopAquarium;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -293,7 +430,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.5;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = fun.coding4.DesktopAquarium;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -310,6 +447,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		6A12804F2F960CDC00CEA42F /* Build configuration list for PBXNativeTarget "AquariumSaver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6A1280502F960CDC00CEA42F /* Debug */,
+				6A1280512F960CDC00CEA42F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		6AFA23092F92337A00B3EA4A /* Build configuration list for PBXProject "DesktopAquarium" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

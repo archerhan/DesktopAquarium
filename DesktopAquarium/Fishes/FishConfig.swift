@@ -75,15 +75,88 @@ extension FishConfig {
 
     )
     
-    // 新增：黄鱼（另一种猎物）配置
+    // 新增：红鱼（另一种猎物）配置
     static let yellowFish = FishConfig(
         speciesName: "黄鱼", // 关键：名称不同，Boids 就会将它们隔离
+        textureName: "yellow_fish", // 请记得在 Assets 里随便放一张名为 red_fish 的图片做测试
+        moveSpeed: 100.0,    // 比绿鱼游得稍微快一点
+        wanderRate: 1.5,
+        turnSpeed: 2.8,      // 转身比绿鱼更灵活
+        baseScale: 0.4,     // 体型略小
+        animationDuration: 0.3, // 摆尾频率更快
+        
+        // 红鱼的群游性格：感知范围小，但非常抱团
+        perceptionRadius: 100.0,
+        separationRadius: 30.0,
+        separationWeight: 4.0,
+        alignmentWeight: 1.5,   // 更喜欢对齐
+        cohesionWeight: 1.2,    // 凝聚力更强
+        
+        isPredator: false,
+        threatRadius: 220.0, // 胆子小，大鱼在更远的地方就会开始跑
+        chaseRadius: 0,
+        
+        wagFrequency: 6.0 // 小鱼身体短，波浪频次适中
+
+    )
+    
+    // 新增：黄鱼（另一种猎物）配置
+    static let bigYellowFish = FishConfig(
+        speciesName: "大黄鱼", // 关键：名称不同，Boids 就会将它们隔离
         textureName: "fish2",
         moveSpeed: 80.0,    // 比绿鱼游得稍微快一点
         wanderRate: 1.3,
         turnSpeed: 1.0,      // 转身比绿鱼更灵活
         baseScale: 0.5,     // 体型略小
         animationDuration: 0.5, // 摆尾频率更快
+        
+        // 红鱼的群游性格：感知范围小，但非常抱团
+        perceptionRadius: 100.0,
+        separationRadius: 30.0,
+        separationWeight: 4.0,
+        alignmentWeight: 0.4,   // 更喜欢对齐
+        cohesionWeight: 1.5,    // 凝聚力更强
+        
+        isPredator: false,
+        threatRadius: 220.0, // 胆子小，大鱼在更远的地方就会开始跑
+        chaseRadius: 0,
+        
+        wagFrequency: 8.0
+    )
+    
+    // 新增：黄鱼（另一种猎物）配置
+    static let coloredFish1 = FishConfig(
+        speciesName: "孔雀", // 关键：名称不同，Boids 就会将它们隔离
+        textureName: "7",
+        moveSpeed: 80.0,    // 比绿鱼游得稍微快一点
+        wanderRate: 1.3,
+        turnSpeed: 1.0,      // 转身比绿鱼更灵活
+        baseScale: 1,     // 体型略小
+        animationDuration: 0.7, // 摆尾频率更快
+        
+        // 红鱼的群游性格：感知范围小，但非常抱团
+        perceptionRadius: 100.0,
+        separationRadius: 30.0,
+        separationWeight: 4.0,
+        alignmentWeight: 0.4,   // 更喜欢对齐
+        cohesionWeight: 1.5,    // 凝聚力更强
+        
+        isPredator: false,
+        threatRadius: 220.0, // 胆子小，大鱼在更远的地方就会开始跑
+        chaseRadius: 0,
+        
+        wagFrequency: 8.0
+    )
+    
+    // 新增：黄鱼（另一种猎物）配置
+    static let coloredFish2 = FishConfig(
+        speciesName: "龙鱼", // 关键：名称不同，Boids 就会将它们隔离
+        textureName: "13",
+        moveSpeed: 80.0,    // 比绿鱼游得稍微快一点
+        wanderRate: 1.3,
+        turnSpeed: 1.0,      // 转身比绿鱼更灵活
+        baseScale: 1.2,     // 体型略小
+        animationDuration: 0.8, // 摆尾频率更快
         
         // 红鱼的群游性格：感知范围小，但非常抱团
         perceptionRadius: 100.0,

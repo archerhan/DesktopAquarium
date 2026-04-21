@@ -39,6 +39,13 @@ class AquariumScene: SKScene {
             }
             .store(in: &cancellables)
         
+        // 🚀 【新增】：监听音频开关变化
+        WindowManager.shared.$isAudioEnabled
+            .sink { [weak self] isEnabled in
+                self?.handleAudioToggle(isEnabled)
+            }
+            .store(in: &cancellables)
+        
         let screenBounds = NSScreen.main?.frame ?? CGRect(x: 0, y: 0, width: 1920, height: 1080)
         
         // 投放 15 条绿鱼
@@ -58,14 +65,40 @@ class AquariumScene: SKScene {
             fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
             self.addChild(fish)
         }
-        // 投放 2 条黄鱼
-        for _ in 0..<2 {
+        
+        for _ in 0..<10 {
             let fish = FishNode(config: .yellowFish)
             let safeMaxX = max(101, screenBounds.width - 100)
             let safeMaxY = max(101, screenBounds.height - 100)
             fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
             self.addChild(fish)
         }
+        
+        // 投放 2 条黄鱼
+        for _ in 0..<2 {
+            let fish = FishNode(config: .bigYellowFish)
+            let safeMaxX = max(101, screenBounds.width - 100)
+            let safeMaxY = max(101, screenBounds.height - 100)
+            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
+            self.addChild(fish)
+        }
+        
+        for _ in 0..<1 {
+            let fish = FishNode(config: .coloredFish1)
+            let safeMaxX = max(101, screenBounds.width - 100)
+            let safeMaxY = max(101, screenBounds.height - 100)
+            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
+            self.addChild(fish)
+        }
+
+        for _ in 0..<2 {
+            let fish = FishNode(config: .coloredFish2)
+            let safeMaxX = max(101, screenBounds.width - 100)
+            let safeMaxY = max(101, screenBounds.height - 100)
+            fish.position = CGPoint(x: CGFloat.random(in: 100...safeMaxX), y: CGFloat.random(in: 100...safeMaxY))
+            self.addChild(fish)
+        }
+
         
         // 【新增】：投放 1 条剑鱼（大鱼）
         let hunter = FishNode(config: .hunterFish)
@@ -83,8 +116,9 @@ class AquariumScene: SKScene {
     // MARK: - 音频系统
     private func setupAmbientAudio() {
         // 1. 获取音频文件的真实物理路径
-        guard let url = Bundle.main.url(forResource: "ambient", withExtension: "mp3") else {
-            print("⚠️ 找不到 ambient.mp3 文件，请检查拼写和 Target Membership！")
+        let bundle = Bundle(for: AquariumScene.self)
+        guard let url = bundle.url(forResource: "ambient", withExtension: "mp3") else {
+            print("⚠️ 找不到 ambient.mp3 文件！")
             return
         }
         
@@ -128,7 +162,7 @@ class AquariumScene: SKScene {
         default:
             imgName = ""
         }
-        let texture = SKTexture(imageNamed: imgName)
+        let texture = SKTexture.safeLoad(name: imgName)
         let node = SKSpriteNode(texture: texture)
         
         node.zPosition = -100 // 确保在最底层
@@ -142,6 +176,19 @@ class AquariumScene: SKScene {
         
         self.addChild(node)
         self.backgroundNode = node
+    }
+    // MARK: - 音频控制
+    private func handleAudioToggle(_ isEnabled: Bool) {
+        guard let player = ambientPlayer else { return }
+        
+        if isEnabled {
+            // 开启：用 1 秒的时间将音量淡入到 0.3
+            player.play()
+            player.setVolume(0.3, fadeDuration: 1.0)
+        } else {
+            // 关闭：用 1 秒的时间淡出到 0 (丝滑静音)
+            player.setVolume(0.0, fadeDuration: 1.0)
+        }
     }
     
     override func update(_ currentTime: TimeInterval) {
