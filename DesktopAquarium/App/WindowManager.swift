@@ -132,8 +132,21 @@ class WindowManager: ObservableObject {
             window.level = NSWindow.Level(Int(CGWindowLevelForKey(.desktopIconWindow)))
             window.ignoresMouseEvents = !isInteractive
             
+            // 🚀 核心修复 1：窗口刚建立时，强行让其处于“绝对隐身”状态！
+            // 这能在物理层面上彻底屏蔽掉系统 UI 引擎那零点几秒的白屏闪烁
+            window.alphaValue = 0.0
+            
             window.contentView = NSHostingView(rootView: ContentView())
             self.activeWindow = window
+            
+            // 🚀 核心修复 2：给引擎 0.3 秒的时间完成第一帧渲染，然后优雅淡入！
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                NSAnimationContext.runAnimationGroup { context in
+                    // 淡入动画持续 0.8 秒，非常丝滑
+                    context.duration = 0.8
+                    window.animator().alphaValue = 1.0
+                }
+            }
         }
         moveToSelectedScreen()
     }
